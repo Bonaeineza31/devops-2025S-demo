@@ -51,7 +51,9 @@ resource "aws_security_group" "app" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  #checkov:skip=CKV_AWS_382:Accepted risk - host needs outbound internet for apt, Docker Hub and image pulls; lab box has no NAT/proxy
   egress {
+    description      = "All outbound (apt, Docker pulls)"
     from_port        = 0
     to_port          = 0
     protocol         = "-1"
@@ -86,7 +88,9 @@ resource "aws_security_group" "db" {
     security_groups = [aws_security_group.app.id]
   }
 
+  #checkov:skip=CKV_AWS_382:Accepted risk - host needs outbound internet for apt, Docker Hub and image pulls; lab box has no NAT/proxy
   egress {
+    description      = "All outbound (apt, Docker pulls)"
     from_port        = 0
     to_port          = 0
     protocol         = "-1"
@@ -122,6 +126,20 @@ resource "aws_instance" "app" {
   key_name                    = aws_key_pair.deployer.key_name
   vpc_security_group_ids      = [aws_security_group.app.id]
   associate_public_ip_address = true
+  ebs_optimized               = true
+
+  #checkov:skip=CKV_AWS_88:Accepted risk - public IP needed so Ansible/SSH from the laptop and users can reach the app; SSH limited to my_ip_cidr
+  #checkov:skip=CKV_AWS_126:Accepted risk - detailed monitoring costs extra; short-lived lab instance, destroyed after class
+  #checkov:skip=CKV2_AWS_41:Accepted risk - instance makes no AWS API calls, so no IAM role is needed
+
+  metadata_options {
+    http_tokens   = "required" # IMDSv2 only
+    http_endpoint = "enabled"
+  }
+
+  root_block_device {
+    encrypted = true
+  }
 
   tags = {
     Name = "campus-notifier-app"
@@ -135,6 +153,20 @@ resource "aws_instance" "db" {
   key_name                    = aws_key_pair.deployer.key_name
   vpc_security_group_ids      = [aws_security_group.db.id]
   associate_public_ip_address = true
+  ebs_optimized               = true
+
+  #checkov:skip=CKV_AWS_88:Accepted risk - public IP needed for Ansible over SSH (no bastion in lab); SSH limited to my_ip_cidr, Postgres only from app SG
+  #checkov:skip=CKV_AWS_126:Accepted risk - detailed monitoring costs extra; short-lived lab instance, destroyed after class
+  #checkov:skip=CKV2_AWS_41:Accepted risk - instance makes no AWS API calls, so no IAM role is needed
+
+  metadata_options {
+    http_tokens   = "required" # IMDSv2 only
+    http_endpoint = "enabled"
+  }
+
+  root_block_device {
+    encrypted = true
+  }
 
   tags = {
     Name = "campus-notifier-db"
