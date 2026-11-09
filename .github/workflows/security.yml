@@ -12,7 +12,6 @@ jobs:
   code:
     name: Code scan (Bandit)
     runs-on: ubuntu-latest
-    continue-on-error: true        # warn for now; Drill 5 sets the threshold
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -21,7 +20,8 @@ jobs:
       - name: Install bandit
         run: python -m pip install --upgrade bandit
       - name: Run bandit
-        run: bandit -r . -f screen
+        # Policy: block on MEDIUM+ severity; LOW findings go to the register for review
+        run: bandit -r . -f screen --severity-level medium
 
   secrets:
     name: Secret scan
@@ -46,8 +46,9 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: campus-notifier:dev
-          severity: HIGH,CRITICAL
-          exit-code: "0"            # warn for now; Drill 5 flips this
+          severity: CRITICAL
+          ignore-unfixed: true      # policy: fail only on CRITICAL with a published fix
+          exit-code: "1"
           format: table
 
   iac:
@@ -61,4 +62,4 @@ jobs:
           directory: .
           framework: terraform
           quiet: true
-          soft_fail: true           # warn for now; Drill 5 flips this to false
+          soft_fail: false          # accepted risks are suppressed inline with justifications
