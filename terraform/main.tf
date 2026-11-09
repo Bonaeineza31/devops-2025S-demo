@@ -1,5 +1,6 @@
 # This is the "blueprint" for our container registry
 resource "aws_ecr_repository" "devops_repo" {
+  #checkov:skip=CKV_AWS_136:Accepted risk - default AES256 encryption is sufficient for class images; KMS key adds cost and key management
   # The name for your repository
   name = "devops-repo"
 

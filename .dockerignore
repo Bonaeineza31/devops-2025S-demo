@@ -5,3 +5,7 @@ __pycache__/
 db.sqlite3
 .env
 terraform/
+preclass/
+**/.terraform/
+*.tfstate*
+node_modules/
